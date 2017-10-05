@@ -45,6 +45,20 @@
             android:layout_height="94dp"
             android:text="Button up"
             android:textSize="50sp" />
+
+    </LinearLayout>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content">
+
+        <Button
+            android:id="@+id/btnOnOff"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="On/Off Led"
+            android:textSize="42sp"/>
+
     </LinearLayout>
 
 </LinearLayout>

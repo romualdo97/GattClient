@@ -34,6 +34,7 @@ public class MainActivity extends AppCompatActivity {
     public static final String MAC_ADDRESS = "CA:A5:4F:3A:A9:5C";
     public static final UUID UUID_SERVICE = UUID.fromString("0000fe84-0000-1000-8000-00805f9b34fb");
     public static final UUID UUID_CHARACTERISTIC_BUTTONSTATUS = UUID.fromString("2d30c082-f39f-4ce6-923f-3484ea480596");
+    public static final UUID UUID_CHARACTERISTIC_LED = UUID.fromString("2d30c083-f39f-4ce6-923f-3484ea480596");
 
     /**
      * Services, characteristics, and descriptors are collectively
@@ -71,6 +72,8 @@ public class MainActivity extends AppCompatActivity {
     private Button connectBtn;
     private Button disconectBtn;
     private TextView statusBtn;
+    private Button btnOnOff;
+    private boolean ledStatus = false;
     private BluetoothGattCallback mGattCallback = new BluetoothGattCallback() {
 
         private final String TAG = "mGattCallback";
@@ -124,6 +127,16 @@ public class MainActivity extends AppCompatActivity {
                             Log.i(TAG, "Descriptor sended");
                         }
                     }
+
+                    BluetoothGattCharacteristic characteristicLed = service.getCharacteristic(UUID_CHARACTERISTIC_LED);
+                    if (characteristicLed != null) {
+                        runOnUiThread(new Runnable() {
+                            @Override
+                            public void run() {
+                                btnOnOff.setEnabled(true);
+                            }
+                        });
+                    }
                 }
             }
         }
@@ -171,7 +184,14 @@ public class MainActivity extends AppCompatActivity {
         connectBtn = (Button) findViewById(R.id.buttonConnect);
         disconectBtn = (Button) findViewById(R.id.buttonDisconnect);
         statusBtn = (TextView) findViewById(R.id.btnStatus);
-
+        btnOnOff = (Button) findViewById(R.id.btnOnOff);
+        btnOnOff.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                turnOnOffLed();
+            }
+        });
+        btnOnOff.setEnabled(false);
 
         // When the app is opened not show buttons
         connectBtn.setVisibility(View.INVISIBLE);
@@ -193,6 +213,13 @@ public class MainActivity extends AppCompatActivity {
     }
 
     @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        stopClient();
+        ledStatus = false;
+    }
+
+    @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         // Check which request we're responding to
         // just UI topics
@@ -211,6 +238,27 @@ public class MainActivity extends AppCompatActivity {
                 // TODO: Close the app if bluetooth not enabled by user
             }
         }
+    }
+
+    private void turnOnOffLed() {
+        ledStatus = !ledStatus;
+        BluetoothGattCharacteristic ledCharacteristic = mBluetoothGatt
+                .getService(UUID_SERVICE)
+                .getCharacteristic(UUID_CHARACTERISTIC_LED);
+        if (ledCharacteristic == null) {
+            Toast.makeText(this, "Could not Get led characteristic", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        byte[] val = new byte[1];
+
+        if (ledStatus) {
+            val[0] = (byte) 1;
+            Log.i(TAG, "Led status ON");
+        } else {
+            val[0] = (byte) 0;
+        }
+        ledCharacteristic.setValue(val);
+        mBluetoothGatt.writeCharacteristic(ledCharacteristic);
     }
 
     // This is called when event onClick is fired
@@ -241,7 +289,7 @@ public class MainActivity extends AppCompatActivity {
 
     // Called when onDestroy event is fired
     // TODO: Call this in onDestroy event of current Activity
-    public void stopClient(View view) {
+    public void stopClient() {
         if (mBluetoothGatt != null) {
             mBluetoothGatt.close();
             mBluetoothGatt = null;
@@ -251,5 +299,7 @@ public class MainActivity extends AppCompatActivity {
             mBluetoothAdapter = null;
         }
     }
+
+
 
 }
