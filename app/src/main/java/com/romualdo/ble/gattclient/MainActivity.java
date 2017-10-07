@@ -11,6 +11,7 @@ import android.bluetooth.BluetoothManager;
 import android.bluetooth.BluetoothProfile;
 import android.content.Context;
 import android.content.Intent;
+import android.support.v4.app.DialogFragment;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
@@ -267,7 +268,7 @@ public class MainActivity extends AppCompatActivity {
             BluetoothDevice bluetoothDevice = mBluetoothAdapter.getRemoteDevice(MAC_ADDRESS);
             mBluetoothGatt = bluetoothDevice.connectGatt(this, false, mGattCallback);
             Toast.makeText(this, "Connected to " + MAC_ADDRESS, Toast.LENGTH_SHORT).show();
-
+            showTimePickerDialog();
             if (mBluetoothGatt == null) {
                 Log.w(TAG, "Unable to create GATT client");
                 Toast.makeText(this, "Cant connect to " + MAC_ADDRESS, Toast.LENGTH_SHORT).show();
@@ -300,6 +301,9 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-
+    public void showTimePickerDialog() {
+        DialogFragment timeFragment = new TimePickerFragment();
+        timeFragment.show(getSupportFragmentManager(), "timePicker");
+    }
 
 }

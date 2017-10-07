@@ -6,51 +6,54 @@
     android:layout_height="match_parent"
     android:orientation="vertical"
     tools:context="com.romualdo.ble.gattclient.MainActivity">
-    
+
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:gravity="center"
         android:orientation="horizontal">
 
         <Button
             android:id="@+id/buttonConnect"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Connect"
             android:onClick="startClient"
-            tools:layout_editor_absoluteY="231dp"
-            tools:layout_editor_absoluteX="76dp" />
+            android:text="Connect"
+            tools:layout_editor_absoluteX="76dp"
+            tools:layout_editor_absoluteY="231dp" />
 
         <Button
             android:id="@+id/buttonDisconnect"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Disconnect"
-            android:onClick="disconnect"
             android:enabled="false"
-            tools:layout_editor_absoluteY="231dp"
-            tools:layout_editor_absoluteX="200dp" />
+            android:onClick="disconnect"
+            android:text="Disconnect"
+            tools:layout_editor_absoluteX="200dp"
+            tools:layout_editor_absoluteY="231dp" />
 
     </LinearLayout>
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="horizontal">
+        android:orientation="horizontal"
+        android:gravity="center">
 
 
         <TextView
             android:id="@+id/btnStatus"
             android:layout_width="wrap_content"
-            android:layout_height="94dp"
+            android:layout_height="wrap_content"
             android:text="Button up"
-            android:textSize="50sp" />
+            android:textSize="24sp" />
 
     </LinearLayout>
 
     <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="wrap_content">
+        android:layout_height="wrap_content"
+        android:gravity="center">
 
         <Button
             android:id="@+id/btnOnOff"
