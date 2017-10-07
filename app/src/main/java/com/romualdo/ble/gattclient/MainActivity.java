@@ -1,5 +1,7 @@
 package com.romualdo.ble.gattclient;
 
+import android.app.AlarmManager;
+import android.app.PendingIntent;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothGatt;
@@ -11,6 +13,7 @@ import android.bluetooth.BluetoothManager;
 import android.bluetooth.BluetoothProfile;
 import android.content.Context;
 import android.content.Intent;
+import android.os.SystemClock;
 import android.support.v4.app.DialogFragment;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
@@ -24,9 +27,11 @@ import com.romualdo.ble.common.Ints;
 
 import org.w3c.dom.Text;
 
+import java.util.Calendar;
 import java.util.UUID;
 
-public class MainActivity extends AppCompatActivity {
+public class MainActivity extends AppCompatActivity
+                    implements TimePickerFragment.OnDataFromTimePickerFragment{
 
     private static final String TAG = MainActivity.class.getSimpleName();
 
@@ -66,6 +71,9 @@ public class MainActivity extends AppCompatActivity {
 
     public static final int REQUEST_ENABLE_BT = 1;
 
+    private AlarmManager mAlarmManager;
+    PendingIntent pendingIntent;
+
     private Context mContext;
     private BluetoothManager mBluetoothManager;
     private BluetoothAdapter mBluetoothAdapter;
@@ -73,6 +81,7 @@ public class MainActivity extends AppCompatActivity {
     private Button connectBtn;
     private Button disconectBtn;
     private TextView statusBtn;
+    private TextView clockTxt;
     private Button btnOnOff;
     private boolean ledStatus = false;
     private BluetoothGattCallback mGattCallback = new BluetoothGattCallback() {
@@ -185,6 +194,7 @@ public class MainActivity extends AppCompatActivity {
         connectBtn = (Button) findViewById(R.id.buttonConnect);
         disconectBtn = (Button) findViewById(R.id.buttonDisconnect);
         statusBtn = (TextView) findViewById(R.id.btnStatus);
+        clockTxt = (TextView) findViewById(R.id.clockView);
         btnOnOff = (Button) findViewById(R.id.btnOnOff);
         btnOnOff.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -201,6 +211,11 @@ public class MainActivity extends AppCompatActivity {
         // Initializes Bluetooth adapter.
         mBluetoothManager = (BluetoothManager) getSystemService(Context.BLUETOOTH_SERVICE);
         mBluetoothAdapter = mBluetoothManager.getAdapter();
+
+        // get the alarm manager
+        mAlarmManager = (AlarmManager) getSystemService(Context.ALARM_SERVICE);
+        Intent myIntent = new Intent(this, AlarmReceiver.class);
+        pendingIntent = PendingIntent.getBroadcast(MainActivity.this, 0, myIntent, 0);
 
         // Ensures Bluetooth is available on the device and it is enabled. If not,
         // displays a dialog requesting user permission to enable Bluetooth.
@@ -304,6 +319,26 @@ public class MainActivity extends AppCompatActivity {
     public void showTimePickerDialog() {
         DialogFragment timeFragment = new TimePickerFragment();
         timeFragment.show(getSupportFragmentManager(), "timePicker");
+    }
+
+    public void OnDataFromTimePickerFragment(String data) {
+
+        Log.d(TAG, data);
+        String s_h = data.substring(0, 2); // string for hour
+        String s_m = data.substring(3, 5); // string for minute
+        //clockTxt.setText(s_h + ":" + s_m);
+        int i_h = Integer.parseInt(s_h);
+        clockTxt.setText(Integer.toString(i_h));
+
+        setAlarm(i_h, Integer.parseInt(s_m));
+    }
+
+    private void setAlarm(int hour, int minute) {
+        // TODO: hacer funcoinar la arlarma; primero hacer que al poner la alarma pase algo
+        Calendar calendar = Calendar.getInstance();
+        calendar.set(Calendar.HOUR_OF_DAY, hour);
+        calendar.set(calendar.MINUTE, minute);
+        mAlarmManager.setExact(AlarmManager.RTC_WAKEUP, SystemClock.elapsedRealtime() + 5 * 1000, pendingIntent);
     }
 
 }
