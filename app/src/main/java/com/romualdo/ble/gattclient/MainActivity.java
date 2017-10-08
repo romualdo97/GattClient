@@ -16,6 +16,8 @@ import android.content.Intent;
 import android.media.Ringtone;
 import android.media.RingtoneManager;
 import android.net.Uri;
+import android.os.Handler;
+import android.os.Looper;
 import android.os.SystemClock;
 import android.support.v4.app.DialogFragment;
 import android.support.v7.app.AppCompatActivity;
@@ -146,17 +148,33 @@ public class MainActivity extends AppCompatActivity
 
                     BluetoothGattCharacteristic characteristicLed = service.getCharacteristic(UUID_CHARACTERISTIC_LED);
                     if (characteristicLed != null) {
+                        // TODO: Resolver problemas con hilos y descubriendo servicios
+                        //writeCharacteristic(true);
+                        isLedServiceDiscovered = true;
+                        Log.i(TAG, "LED CHARACTERISTIC CONNECTED: " + isLedServiceDiscovered);
+
                         runOnUiThread(new Runnable() {
                             @Override
                             public void run() {
-
-                                //btnOnOff.setEnabled(true);
+                                btnOnOff.setEnabled(true);
+                                //writeCharacteristic(true);
+                                Log.i(TAG, "THIS CODE WAS EXECUTED: " + isLedServiceDiscovered);
                             }
                         });
-                        // TODO: Resolver problemas con hilos y descubriendo servicios
-                        writeCharacteristic(true);
-                        isLedServiceDiscovered = true;
-                        Log.i(TAG, "LED CHARACTERISTIC CONNECTED: " + isLedServiceDiscovered);
+
+                        // https://stackoverflow.com/questions/11123621/running-code-in-main-thread-from-another-thread
+                        // execute code in main loop
+                        // is necesario postear con un pequeño delay el message de encender el led por motivos aun desconocidos
+                        // para la fisica teorica del momento.
+                        Handler mainHandler = new Handler(Looper.getMainLooper());
+                        Runnable myRunnable = new Runnable() {
+                            @Override
+                            public void run() {
+                                writeCharacteristic(true);
+                            }
+                        };
+                        mainHandler.postDelayed(myRunnable, 1000); // post in delay
+
                     }
                 }
             }
@@ -210,7 +228,8 @@ public class MainActivity extends AppCompatActivity
         btnOnOff.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                turnOnOffLed();
+                //turnOnOffLed();
+                writeCharacteristic(false);
             }
         });
         btnOnOff.setEnabled(false);
@@ -271,14 +290,14 @@ public class MainActivity extends AppCompatActivity
                 mBluetoothGatt.discoverServices();
                 Log.i(TAG, "LED CHARACTERISTIC CONNECTED AFTER discoverServices(): " + isLedServiceDiscovered);
 
-                if (isLedServiceDiscovered) {
+                /*if (isLedServiceDiscovered) {
                     writeCharacteristic(true);
                     Toast.makeText(this, "Characteristic written", Toast.LENGTH_SHORT).show();
                     //btnOnOff.setEnabled(true);
-                    /*if (turnOnOffLed()) {
-                        Toast.makeText(this, "Characteristic written", Toast.LENGTH_SHORT).show();
-                    }*/
-                }
+                    //if (turnOnOffLed()) {
+                    //    Toast.makeText(this, "Characteristic written", Toast.LENGTH_SHORT).show();
+                    //}
+                }*/
             }
 
 
@@ -364,10 +383,10 @@ public class MainActivity extends AppCompatActivity
         } else {
             val[0] = (byte) 0;
         }
-
+        //val[0] = (byte) 1;
         ledCharacteristic.setValue(val);
         mBluetoothGatt.writeCharacteristic(ledCharacteristic);
-        Toast.makeText(this, "Written in led service", Toast.LENGTH_SHORT).show();
+        Toast.makeText(this, "Written in led service, val = " + val[0], Toast.LENGTH_SHORT).show();
         return true;
     }
 
