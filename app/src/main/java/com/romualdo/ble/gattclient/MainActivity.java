@@ -13,6 +13,9 @@ import android.bluetooth.BluetoothManager;
 import android.bluetooth.BluetoothProfile;
 import android.content.Context;
 import android.content.Intent;
+import android.media.Ringtone;
+import android.media.RingtoneManager;
+import android.net.Uri;
 import android.os.SystemClock;
 import android.support.v4.app.DialogFragment;
 import android.support.v7.app.AppCompatActivity;
@@ -34,6 +37,9 @@ public class MainActivity extends AppCompatActivity
                     implements TimePickerFragment.OnDataFromTimePickerFragment{
 
     private static final String TAG = MainActivity.class.getSimpleName();
+
+    public static final String EXTRA__IS_ALARM_SETTED = "com.romualdo.ble.blink.isAlarmSetted";
+    public static final String EXTRA__ALARM_VALUE_SETTED = "com.romualdo.ble.blink.alarmValue";
 
     public static final String EXTRA_INPUTVAL = "com.romualdo.ble.blink.extra_inputval";
 
@@ -70,11 +76,10 @@ public class MainActivity extends AppCompatActivity
     public static final UUID UUID_DESCRIPTOR = UUID.fromString("00002902-0000-1000-8000-00805f9b34fb");
 
     public static final int REQUEST_ENABLE_BT = 1;
+    public static final int REQUEST_SET_ALARM = 2;
 
     private AlarmManager mAlarmManager;
-    PendingIntent pendingIntent;
 
-    private Context mContext;
     private BluetoothManager mBluetoothManager;
     private BluetoothAdapter mBluetoothAdapter;
     private BluetoothGatt mBluetoothGatt;
@@ -84,6 +89,7 @@ public class MainActivity extends AppCompatActivity
     private TextView clockTxt;
     private Button btnOnOff;
     private boolean ledStatus = false;
+    private boolean isLedServiceDiscovered = false;
     private BluetoothGattCallback mGattCallback = new BluetoothGattCallback() {
 
         private final String TAG = "mGattCallback";
@@ -102,7 +108,7 @@ public class MainActivity extends AppCompatActivity
                         disconectBtn.setEnabled(true);
                     }
                 });
-                mBluetoothGatt.discoverServices();
+                //mBluetoothGatt.discoverServices();
             } else if (newState == BluetoothProfile.STATE_DISCONNECTED)
             {
                 runOnUiThread(new Runnable() {
@@ -118,7 +124,7 @@ public class MainActivity extends AppCompatActivity
 
         @Override
         public void onServicesDiscovered(BluetoothGatt gatt, int status) {
-            //Log.i(TAG, "Service discovered");
+
 
             if (status == gatt.GATT_SUCCESS) {
                 BluetoothGattService service = gatt.getService(UUID_SERVICE);
@@ -143,9 +149,14 @@ public class MainActivity extends AppCompatActivity
                         runOnUiThread(new Runnable() {
                             @Override
                             public void run() {
-                                btnOnOff.setEnabled(true);
+
+                                //btnOnOff.setEnabled(true);
                             }
                         });
+                        // TODO: Resolver problemas con hilos y descubriendo servicios
+                        writeCharacteristic(true);
+                        isLedServiceDiscovered = true;
+                        Log.i(TAG, "LED CHARACTERISTIC CONNECTED: " + isLedServiceDiscovered);
                     }
                 }
             }
@@ -188,7 +199,7 @@ public class MainActivity extends AppCompatActivity
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        mContext = this;
+        //mContext = this;
         setContentView(R.layout.activity_main);
 
         connectBtn = (Button) findViewById(R.id.buttonConnect);
@@ -214,8 +225,6 @@ public class MainActivity extends AppCompatActivity
 
         // get the alarm manager
         mAlarmManager = (AlarmManager) getSystemService(Context.ALARM_SERVICE);
-        Intent myIntent = new Intent(this, AlarmReceiver.class);
-        pendingIntent = PendingIntent.getBroadcast(MainActivity.this, 0, myIntent, 0);
 
         // Ensures Bluetooth is available on the device and it is enabled. If not,
         // displays a dialog requesting user permission to enable Bluetooth.
@@ -225,6 +234,55 @@ public class MainActivity extends AppCompatActivity
         } else {
             connectBtn.setVisibility(View.VISIBLE);
             disconectBtn.setVisibility(View.VISIBLE);
+        }
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+
+        Intent intent = getIntent();
+        boolean isAlarmSetted = intent.getBooleanExtra(EXTRA__IS_ALARM_SETTED, false);
+
+        if (isAlarmSetted) {
+            Toast.makeText(this, "Time to rock!!!", Toast.LENGTH_SHORT).show();
+
+            String data = intent.getStringExtra(EXTRA__ALARM_VALUE_SETTED);
+            clockTxt.setText(data);
+
+            // Initializes Bluetooth adapter.
+            mBluetoothManager = (BluetoothManager) getSystemService(Context.BLUETOOTH_SERVICE);
+            mBluetoothAdapter = mBluetoothManager.getAdapter();
+            //mBluetoothGatt.discoverServices();
+
+            /*try {
+                if (startClient(null)) {
+                    mBluetoothGatt.discoverServices();
+                    writeCharacteristic(true);
+                    Toast.makeText(this, "Characteristic written", Toast.LENGTH_SHORT).show();
+                }
+            } catch (Throwable e) {
+                Toast.makeText(this, "Error writing characteristic", Toast.LENGTH_SHORT).show();
+                Log.w(TAG, e.toString());
+            }*/
+
+            if (startClient()) {
+                Log.i(TAG, "LED CHARACTERISTIC CONNECTED BEFORE discoverServices(): " + isLedServiceDiscovered);
+                mBluetoothGatt.discoverServices();
+                Log.i(TAG, "LED CHARACTERISTIC CONNECTED AFTER discoverServices(): " + isLedServiceDiscovered);
+
+                if (isLedServiceDiscovered) {
+                    writeCharacteristic(true);
+                    Toast.makeText(this, "Characteristic written", Toast.LENGTH_SHORT).show();
+                    //btnOnOff.setEnabled(true);
+                    /*if (turnOnOffLed()) {
+                        Toast.makeText(this, "Characteristic written", Toast.LENGTH_SHORT).show();
+                    }*/
+                }
+            }
+
+
+            intent.putExtra(EXTRA__IS_ALARM_SETTED, false);
         }
     }
 
@@ -256,15 +314,19 @@ public class MainActivity extends AppCompatActivity
         }
     }
 
-    private void turnOnOffLed() {
+    private boolean turnOnOffLed() {
         ledStatus = !ledStatus;
-        BluetoothGattCharacteristic ledCharacteristic = mBluetoothGatt
-                .getService(UUID_SERVICE)
-                .getCharacteristic(UUID_CHARACTERISTIC_LED);
+        BluetoothGattService ledService = mBluetoothGatt.getService(UUID_SERVICE);
+        if (ledService == null) {
+            Toast.makeText(this, "Could not Get led service", Toast.LENGTH_SHORT).show();
+            return false;
+        }
+        BluetoothGattCharacteristic ledCharacteristic = ledService.getCharacteristic(UUID_CHARACTERISTIC_LED);
         if (ledCharacteristic == null) {
             Toast.makeText(this, "Could not Get led characteristic", Toast.LENGTH_SHORT).show();
-            return;
+            return false;
         }
+
         byte[] val = new byte[1];
 
         if (ledStatus) {
@@ -275,23 +337,66 @@ public class MainActivity extends AppCompatActivity
         }
         ledCharacteristic.setValue(val);
         mBluetoothGatt.writeCharacteristic(ledCharacteristic);
+        return true;
+    }
+
+    private boolean writeCharacteristic(boolean data) {
+
+        /*BluetoothGattCharacteristic ledCharacteristic = mBluetoothGatt
+                .getService(UUID_SERVICE)
+                .getCharacteristic(UUID_CHARACTERISTIC_LED);*/
+        BluetoothGattService ledService = mBluetoothGatt.getService(UUID_SERVICE);
+        if (ledService == null) {
+            Toast.makeText(this, "Could not Get led service", Toast.LENGTH_SHORT).show();
+            return false;
+        }
+        BluetoothGattCharacteristic ledCharacteristic = ledService.getCharacteristic(UUID_CHARACTERISTIC_LED);
+        if (ledCharacteristic == null) {
+            Toast.makeText(this, "Could not Get led characteristic", Toast.LENGTH_SHORT).show();
+            return false;
+        }
+
+        byte[] val = new byte[1];
+
+        if (data) {
+            val[0] = (byte) 1;
+            //Log.i(TAG, "Led status ON");
+        } else {
+            val[0] = (byte) 0;
+        }
+
+        ledCharacteristic.setValue(val);
+        mBluetoothGatt.writeCharacteristic(ledCharacteristic);
+        Toast.makeText(this, "Written in led service", Toast.LENGTH_SHORT).show();
+        return true;
     }
 
     // This is called when event onClick is fired
     public void startClient(View view) {
+        startClient();
+    }
+
+    // This is called when event onClick is fired
+    public boolean startClient() {
+        Intent intent = getIntent();
+        boolean isAlarmSetted = intent.getBooleanExtra(EXTRA__IS_ALARM_SETTED, false);
         try {
             BluetoothDevice bluetoothDevice = mBluetoothAdapter.getRemoteDevice(MAC_ADDRESS);
             mBluetoothGatt = bluetoothDevice.connectGatt(this, false, mGattCallback);
-            Toast.makeText(this, "Connected to " + MAC_ADDRESS, Toast.LENGTH_SHORT).show();
-            showTimePickerDialog();
+            if (!isAlarmSetted) showTimePickerDialog();
             if (mBluetoothGatt == null) {
                 Log.w(TAG, "Unable to create GATT client");
                 Toast.makeText(this, "Cant connect to " + MAC_ADDRESS, Toast.LENGTH_SHORT).show();
-                return;
+                return false;
+            } else {
+                Toast.makeText(this, "Connected to " + MAC_ADDRESS, Toast.LENGTH_SHORT).show();
+                return true;
             }
         }
         catch (Exception e) {
             Log.w(TAG, e.toString());
+            Toast.makeText(this, "Error connecting to " + MAC_ADDRESS, Toast.LENGTH_SHORT).show();
+            return false;
         }
 
     }
@@ -322,23 +427,33 @@ public class MainActivity extends AppCompatActivity
     }
 
     public void OnDataFromTimePickerFragment(String data) {
-
+        clockTxt.setText(data);
         Log.d(TAG, data);
         String s_h = data.substring(0, 2); // string for hour
         String s_m = data.substring(3, 5); // string for minute
         //clockTxt.setText(s_h + ":" + s_m);
         int i_h = Integer.parseInt(s_h);
-        clockTxt.setText(Integer.toString(i_h));
+        int i_m = Integer.parseInt(s_m);
 
-        setAlarm(i_h, Integer.parseInt(s_m));
+        setAlarm(i_h, i_m, data);
+
     }
 
-    private void setAlarm(int hour, int minute) {
-        // TODO: hacer funcoinar la arlarma; primero hacer que al poner la alarma pase algo
+    private void setAlarm(int hour, int minute, String data) {
+        Toast.makeText(this, "Setting alarm", Toast.LENGTH_SHORT).show();
+
+        Intent intent = new Intent(this, MainActivity.class);
+        intent.putExtra(EXTRA__IS_ALARM_SETTED, true);
+        intent.putExtra(EXTRA__ALARM_VALUE_SETTED, data);
+
+        PendingIntent pendingIntent = PendingIntent.getActivity(this, REQUEST_SET_ALARM, intent, PendingIntent.FLAG_CANCEL_CURRENT);
+
         Calendar calendar = Calendar.getInstance();
         calendar.set(Calendar.HOUR_OF_DAY, hour);
         calendar.set(calendar.MINUTE, minute);
-        mAlarmManager.setExact(AlarmManager.RTC_WAKEUP, SystemClock.elapsedRealtime() + 5 * 1000, pendingIntent);
+
+        //mAlarmManager.setExact(AlarmManager.RTC_WAKEUP, System.currentTimeMillis() + 1000*10, pendingIntent);
+        mAlarmManager.setExact(AlarmManager.RTC_WAKEUP, calendar.getTimeInMillis(), pendingIntent);
     }
 
 }
