@@ -28,9 +28,9 @@ import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import com.romualdo.ble.common.Ints;
+//import com.romualdo.ble.common.Ints;
 
-import org.w3c.dom.Text;
+//import org.w3c.dom.Text;
 
 import java.util.Calendar;
 import java.util.UUID;
@@ -38,12 +38,14 @@ import java.util.UUID;
 public class MainActivity extends AppCompatActivity
                     implements TimePickerFragment.OnDataFromTimePickerFragment{
 
+    private boolean SHOW_TOAST = true;
+
     private static final String TAG = MainActivity.class.getSimpleName();
 
     public static final String EXTRA__IS_ALARM_SETTED = "com.romualdo.ble.blink.isAlarmSetted";
     public static final String EXTRA__ALARM_VALUE_SETTED = "com.romualdo.ble.blink.alarmValue";
 
-    public static final String EXTRA_INPUTVAL = "com.romualdo.ble.blink.extra_inputval";
+    //public static final String EXTRA_INPUTVAL = "com.romualdo.ble.blink.extra_inputval";
 
     public static final String MAC_ADDRESS = "CA:A5:4F:3A:A9:5C";
     public static final UUID UUID_SERVICE = UUID.fromString("0000fe84-0000-1000-8000-00805f9b34fb");
@@ -319,7 +321,7 @@ public class MainActivity extends AppCompatActivity
         if (requestCode == REQUEST_ENABLE_BT) {
             if (resultCode == RESULT_OK) {
                 Log.w(TAG, "Bluetooth enabled");
-                Toast.makeText(this, "Bluetooth enabled", Toast.LENGTH_SHORT).show();
+                if (SHOW_TOAST) { Toast.makeText(this, "Bluetooth enabled", Toast.LENGTH_SHORT).show(); }
                 connectBtn.setVisibility(View.VISIBLE);
                 disconectBtn.setVisibility(View.VISIBLE);
             }
@@ -327,7 +329,7 @@ public class MainActivity extends AppCompatActivity
                 // Si no se pudo conectar
                 connectBtn.setVisibility(View.INVISIBLE);
                 disconectBtn.setVisibility(View.INVISIBLE);
-                Toast.makeText(this, "Bluetooth not enabled, closing app...", Toast.LENGTH_SHORT).show();
+                if (SHOW_TOAST) { Toast.makeText(this, "Bluetooth not enabled, closing app...", Toast.LENGTH_SHORT).show(); }
                 // TODO: Close the app if bluetooth not enabled by user
             }
         }
@@ -337,12 +339,12 @@ public class MainActivity extends AppCompatActivity
         ledStatus = !ledStatus;
         BluetoothGattService ledService = mBluetoothGatt.getService(UUID_SERVICE);
         if (ledService == null) {
-            Toast.makeText(this, "Could not Get led service", Toast.LENGTH_SHORT).show();
+            if (SHOW_TOAST) { Toast.makeText(this, "Could not Get led service", Toast.LENGTH_SHORT).show(); }
             return false;
         }
         BluetoothGattCharacteristic ledCharacteristic = ledService.getCharacteristic(UUID_CHARACTERISTIC_LED);
         if (ledCharacteristic == null) {
-            Toast.makeText(this, "Could not Get led characteristic", Toast.LENGTH_SHORT).show();
+            if (SHOW_TOAST) { Toast.makeText(this, "Could not Get led characteristic", Toast.LENGTH_SHORT).show(); }
             return false;
         }
 
@@ -366,12 +368,12 @@ public class MainActivity extends AppCompatActivity
                 .getCharacteristic(UUID_CHARACTERISTIC_LED);*/
         BluetoothGattService ledService = mBluetoothGatt.getService(UUID_SERVICE);
         if (ledService == null) {
-            Toast.makeText(this, "Could not Get led service", Toast.LENGTH_SHORT).show();
+            if (SHOW_TOAST) { Toast.makeText(this, "Could not Get led service", Toast.LENGTH_SHORT).show(); }
             return false;
         }
         BluetoothGattCharacteristic ledCharacteristic = ledService.getCharacteristic(UUID_CHARACTERISTIC_LED);
         if (ledCharacteristic == null) {
-            Toast.makeText(this, "Could not Get led characteristic", Toast.LENGTH_SHORT).show();
+            if (SHOW_TOAST) { Toast.makeText(this, "Could not Get led characteristic", Toast.LENGTH_SHORT).show(); }
             return false;
         }
 
@@ -386,7 +388,7 @@ public class MainActivity extends AppCompatActivity
         //val[0] = (byte) 1;
         ledCharacteristic.setValue(val);
         mBluetoothGatt.writeCharacteristic(ledCharacteristic);
-        Toast.makeText(this, "Written in led service, val = " + val[0], Toast.LENGTH_SHORT).show();
+        if (SHOW_TOAST) { Toast.makeText(this, "Written in led service, val = " + val[0], Toast.LENGTH_SHORT).show(); }
         return true;
     }
 
@@ -405,22 +407,22 @@ public class MainActivity extends AppCompatActivity
             if (!isAlarmSetted) showTimePickerDialog();
             if (mBluetoothGatt == null) {
                 Log.w(TAG, "Unable to create GATT client");
-                Toast.makeText(this, "Cant connect to " + MAC_ADDRESS, Toast.LENGTH_SHORT).show();
+                if (SHOW_TOAST) { Toast.makeText(this, "Cant connect to " + MAC_ADDRESS, Toast.LENGTH_SHORT).show(); }
                 return false;
             } else {
-                Toast.makeText(this, "Connected to " + MAC_ADDRESS, Toast.LENGTH_SHORT).show();
+                if (SHOW_TOAST) { Toast.makeText(this, "Connected to " + MAC_ADDRESS, Toast.LENGTH_SHORT).show(); }
                 return true;
             }
         }
         catch (Exception e) {
             Log.w(TAG, e.toString());
-            Toast.makeText(this, "Error connecting to " + MAC_ADDRESS, Toast.LENGTH_SHORT).show();
+            if (SHOW_TOAST) { Toast.makeText(this, "Error connecting to " + MAC_ADDRESS, Toast.LENGTH_SHORT).show(); }
             return false;
         }
 
     }
 
-    // Called when onClik event of disconect button is fired
+    // Called when onClik event of disconect button_selector is fired
     public void disconnect(View view) {
         if (mBluetoothGatt != null) {
             mBluetoothGatt.disconnect();
@@ -459,7 +461,7 @@ public class MainActivity extends AppCompatActivity
     }
 
     private void setAlarm(int hour, int minute, String data) {
-        Toast.makeText(this, "Setting alarm", Toast.LENGTH_SHORT).show();
+        Toast.makeText(this, "Alarm setted", Toast.LENGTH_SHORT).show();
 
         Intent intent = new Intent(this, MainActivity.class);
         intent.putExtra(EXTRA__IS_ALARM_SETTED, true);
