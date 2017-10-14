@@ -40,17 +40,14 @@ A continuación, deberemos programar el host, para ello seguiremos la [guía de 
 
 Luego cargamos el siguiente [programa](https://github.com/jorovipe97/GattServerSimblee/blob/master/LedButtonSimblee.ino) en el simblee.
 
-
 ---
 
 ## Programando el cliente
 
 Lo primero que deberemos hacer en nuestra aplicación es establecer los permisión necesarios en el `AndroidManifest.xml`
 
-    <uses-permission android:name="android.permission.BLUETOOTH" />
-    
-    <uses-permission android:name="android.permission.BLUETOOTH_ADMIN" />
-    
+    <uses-permission android:name="android.permission.BLUETOOTH" />    
+    <uses-permission android:name="android.permission.BLUETOOTH_ADMIN" />    
     <uses-permission android:name="android.permission.WAKE_LOCK" />
 
 Luego, escribimos los siguientes colores en `values/colors.xml`
@@ -63,128 +60,92 @@ Ahora escribiremos la siguiente layout
 
 ![enter image description here](https://i.imgur.com/fDSVxLS.png)
 
-en `layout/activity_main.xml` usando la siguiente estructura:
+en `layout/activity_main.xml` usando la siguiente [estructura xml](https://github.com/romualdo97/GattClientAlarm/blob/master/app/src/main/res/layout/activity_main.xml):
 
-    <?xml version="1.0" encoding="utf-8"?>
-    <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
-    xmlns:tools="http://schemas.android.com/tools"
-    android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    android:gravity="center"
-    tools:context="com.romualdo.ble.gattclient.MainActivity"
-    android:weightSum="1"
-    android:orientation="vertical">
+### Programando `setAlarm()`
 
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:gravity="center"
-        android:orientation="horizontal">
+> Para revisar declaraciones e implementaciones de simbolos no declarados previamente en este tutorial por favor dirijase al [MainActivity.java](https://github.com/romualdo97/GattClientAlarm/blob/master/app/src/main/java/com/romualdo/ble/gattclient/MainActivity.java) +
 
-        <Button
-            android:id="@+id/buttonConnect"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:onClick="startClient"
-            android:text="Set alarm"
-            tools:layout_editor_absoluteX="76dp"
-            tools:layout_editor_absoluteY="231dp" />
+	// This is called when event onClick is fired
+    public void startClient(View view) {
+        startClient();
+    }
 
-        <Button
-            android:id="@+id/buttonDisconnect"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:enabled="false"
-            android:onClick="disconnect"
-            android:text="Cancel alarm"
-            tools:layout_editor_absoluteX="200dp"
-            tools:layout_editor_absoluteY="231dp" />
+    // This is called when event onClick is fired
+    public boolean startClient() {
+        Intent intent = getIntent();
+        boolean isAlarmSetted = intent.getBooleanExtra(EXTRA__IS_ALARM_SETTED, false);
+        try {
+            BluetoothDevice bluetoothDevice = mBluetoothAdapter.getRemoteDevice(MAC_ADDRESS);
+            mBluetoothGatt = bluetoothDevice.connectGatt(this, false, mGattCallback);
+            if (!isAlarmSetted) showTimePickerDialog();
+            if (mBluetoothGatt == null) {
+                Log.w(TAG, "Unable to create GATT client");
+                if (SHOW_TOAST) { Toast.makeText(this, "Cant connect to " + MAC_ADDRESS, Toast.LENGTH_SHORT).show(); }
+                return false;
+            } else {
+                if (SHOW_TOAST) { Toast.makeText(this, "Connected to " + MAC_ADDRESS, Toast.LENGTH_SHORT).show(); }
+                return true;
+            }
+        }
+        catch (Exception e) {
+            Log.w(TAG, e.toString());
+            if (SHOW_TOAST) { Toast.makeText(this, "Error connecting to " + MAC_ADDRESS, Toast.LENGTH_SHORT).show(); }
+            return false;
+        }
+    }
 
-    </LinearLayout>
+### Programando `cancelAlarm()`
 
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:gravity="center">
+	public void disconnect(View view) {
+        if (mBluetoothGatt != null) {
+            mBluetoothGatt.disconnect();
+        }
+    }
 
+### Programando `turnOffAlarm()`
 
-        <TextView
-            android:id="@+id/btnStatus"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Button up"
-            android:visibility="invisible"
-            android:textSize="24sp" />
+	// MainActivity.onCreate()
+	btnOnOff = (Button) findViewById(R.id.btnOnOff);
+	btnOnOff.setOnClickListener(new View.OnClickListener() {
+		@Override
+		public void onClick(View view) {
+			writeCharacteristic(false);
+		}
+	});
+	// ==========================================================
+	// MainActivity.writeCharacteristic()
+	private boolean writeCharacteristic(boolean data) {
+	
+		BluetoothGattService ledService = mBluetoothGatt.getService(UUID_SERVICE);
+		if (ledService == null) {
+			if (SHOW_TOAST) { Toast.makeText(this, "Could not Get led service", Toast.LENGTH_SHORT).show(); }
+			return false;
+		}
 
-    </LinearLayout>
+		BluetoothGattCharacteristic ledCharacteristic = ledService.getCharacteristic(UUID_CHARACTERISTIC_LED);
+		if (ledCharacteristic == null) {
+			if (SHOW_TOAST) { Toast.makeText(this, "Could not Get led characteristic", Toast.LENGTH_SHORT).show(); }
+			return false;
+		}
 
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:gravity="center">
+		byte[] val = new byte[1];
+		if (data) {
+			val[0] = (byte) 1;
+		} else {
+			val[0] = (byte) 0;
+		}
 
+		ledCharacteristic.setValue(val);
+		mBluetoothGatt.writeCharacteristic(ledCharacteristic);
+		if (SHOW_TOAST) { Toast.makeText(this, "Written in led service, val = " + val[0], Toast.LENGTH_SHORT).show(); }
+		return true;
+	}
 
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Alarm setted for:"
-            android:textSize="18sp" />
+---
 
-    </LinearLayout>
+## Otros recursos
 
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:gravity="center"
-        android:orientation="horizontal">
-
-        <TextView
-            android:id="@+id/clockView"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="20:23"
-            android:textSize="46sp"
-            android:textStyle="bold" />
-
-    </LinearLayout>
-
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:gravity="center">
-
-
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="of today"
-            android:textSize="18sp" />
-
-    </LinearLayout>
-
-    <LinearLayout
-        android:layout_width="121dp"
-        android:layout_height="wrap_content"
-        android:layout_weight="0.11">
-
-    </LinearLayout>
-
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:gravity="center">
-
-        <Button
-            android:id="@+id/btnOnOff"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Turn off"
-            android:textSize="24sp" />
-
-    </LinearLayout>
-
-    </LinearLayout>
+> - [How to Create Android BLE Application Faster and Easier?](http://www.instructables.com/id/How-to-create-Android-BLE-application-faster-and-e/)
+> - [Communicating with Bluetooth Low Energy devices](http://nilhcem.com/android-things/bluetooth-low-energy)
+> - [how to write characteristics?](https://stackoverflow.com/questions/20043388/working-with-ble-android-4-3-how-to-write-characteristics)
