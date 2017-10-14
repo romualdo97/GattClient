@@ -4,9 +4,10 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:orientation="vertical"
+    android:gravity="center"
     tools:context="com.romualdo.ble.gattclient.MainActivity"
-    android:weightSum="1">
+    android:weightSum="1"
+    android:orientation="vertical">
 
     <LinearLayout
         android:layout_width="match_parent"
@@ -19,7 +20,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:onClick="startClient"
-            android:text="Connect"
+            android:text="Set alarm"
             tools:layout_editor_absoluteX="76dp"
             tools:layout_editor_absoluteY="231dp" />
 
@@ -29,7 +30,7 @@
             android:layout_height="wrap_content"
             android:enabled="false"
             android:onClick="disconnect"
-            android:text="Disconnect"
+            android:text="Cancel alarm"
             tools:layout_editor_absoluteX="200dp"
             tools:layout_editor_absoluteY="231dp" />
 
@@ -47,7 +48,23 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="Button up"
+            android:visibility="invisible"
             android:textSize="24sp" />
+
+    </LinearLayout>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center">
+
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Alarm setted for:"
+            android:textSize="18sp" />
 
     </LinearLayout>
 
@@ -61,8 +78,31 @@
             android:id="@+id/clockView"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="6 : 45"
-            android:textSize="24sp" />
+            android:text="20:23"
+            android:textSize="46sp"
+            android:textStyle="bold" />
+
+    </LinearLayout>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center">
+
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="of today"
+            android:textSize="18sp" />
+
+    </LinearLayout>
+
+    <LinearLayout
+        android:layout_width="121dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="0.11">
 
     </LinearLayout>
 
@@ -75,8 +115,8 @@
             android:id="@+id/btnOnOff"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="On/Off Led"
-            android:textSize="42sp"/>
+            android:text="Turn off"
+            android:textSize="24sp" />
 
     </LinearLayout>
 
